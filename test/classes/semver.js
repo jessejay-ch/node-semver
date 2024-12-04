@@ -62,15 +62,19 @@ test('really big numeric prerelease value', (t) => {
 })
 
 test('invalid version numbers', (t) => {
-  ['1.2.3.4',
-    'NOT VALID',
-    1.2,
-    null,
-    'Infinity.NaN.Infinity',
-  ].forEach((v) => {
-    t.throws(() => {
-      new SemVer(v) // eslint-disable-line no-new
-    }, { name: 'TypeError', message: `Invalid Version: ${v}` })
+  ['1.2.3.4', 'NOT VALID', 1.2, null, 'Infinity.NaN.Infinity'].forEach((v) => {
+    t.throws(
+      () => {
+        new SemVer(v) // eslint-disable-line no-new
+      },
+      {
+        name: 'TypeError',
+        message:
+          typeof v === 'string'
+            ? `Invalid Version: ${v}`
+            : `Invalid version. Must be a string. Got type "${typeof v}".`,
+      }
+    )
   })
 
   t.end()
@@ -84,12 +88,20 @@ test('incrementing', t => {
     expect,
     options,
     id,
+    base,
   ]) => t.test(`${version} ${inc} ${id || ''}`.trim(), t => {
-    t.plan(1)
     if (expect === null) {
-      t.throws(() => new SemVer(version, options).inc(inc, id))
+      t.plan(1)
+      t.throws(() => new SemVer(version, options).inc(inc, id, base))
     } else {
-      t.equal(new SemVer(version, options).inc(inc, id).version, expect)
+      t.plan(2)
+      const incremented = new SemVer(version, options).inc(inc, id, base)
+      t.equal(incremented.version, expect)
+      if (incremented.build.length) {
+        t.equal(incremented.raw, `${expect}+${incremented.build.join('.')}`)
+      } else {
+        t.equal(incremented.raw, expect)
+      }
     }
   }))
 })
@@ -107,21 +119,6 @@ test('compare main vs pre', (t) => {
   t.equal(p.comparePre('1.2.3'), -1)
   t.equal(p.comparePre('1.2.3-alpha.0.pr.2'), -1)
   t.equal(p.comparePre('1.2.3-alpha.0.2'), 1)
-
-  t.end()
-})
-
-test('invalid version numbers', (t) => {
-  ['1.2.3.4',
-    'NOT VALID',
-    1.2,
-    null,
-    'Infinity.NaN.Infinity',
-  ].forEach((v) => {
-    t.throws(() => {
-      new SemVer(v) // eslint-disable-line no-new
-    }, { name: 'TypeError', message: `Invalid Version: ${v}` })
-  })
 
   t.end()
 })
